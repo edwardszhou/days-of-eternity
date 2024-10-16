@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { MeshoptSimplifier } from 'meshoptimizer';
+import { useEffect, useRef, useState } from 'react';
 import { useThree } from '@react-three/fiber';
-import { gsap } from 'gsap';
+import { RigidBody, TrimeshCollider } from '@react-three/rapier';
 
 function generateHeight(width, depth) {
   let seed = Math.PI / 4;
@@ -91,47 +92,53 @@ function generateTexture(data, width, height, sunPosition) {
   return canvasScaled;
 }
 
-export default function Terrain({ width = 512, depth = 512, sunPosition }) {
+export default function Terrain({ width, depth, sunPosition, moveCamera }) {
   const meshRef = useRef(null);
   const planeRef = useRef(null);
   const textureRef = useRef(null);
-  const helperRef = useRef(null);
-  const { pointer, raycaster, camera } = useThree();
-  const [isMoving, setIsMoving] = useState(false);
+  const mesh2Ref = useRef(null);
+  const plane2Ref = useRef(null);
+
+  const pointer = useThree((state) => state.pointer);
+  const raycaster = useThree((state) => state.raycaster);
+  const camera = useThree((state) => state.camera);
+
+  const [colliderData, setColliderData] = useState();
 
   useEffect(() => {
     const vertices = planeRef.current.attributes.position.array;
+    const vertices2 = plane2Ref.current.attributes.position.array;
     const heightData = generateHeight(width, depth);
     for (let i = 0, j = 0, l = vertices.length; i < l; i++, j += 3) {
       vertices[j + 2] = heightData[i] * 0.3;
+      vertices2[j + 2] = heightData[i] * 0.3;
     }
+
+    const srcIndexArray = plane2Ref.current.index.array;
+    const targetCount = 3 * Math.floor(((1 / 16) * srcIndexArray.length) / 3);
+    const [dstIndexArray, error] = MeshoptSimplifier.simplify(srcIndexArray, vertices2, 3, targetCount, 0.01, ['LockBorder']);
+    console.log(`targetCount: ${targetCount}, count: ${dstIndexArray.length}`);
+
+    plane2Ref.current.index.array.set(dstIndexArray);
+    plane2Ref.current.index.needsUpdate = true;
+
+    plane2Ref.current.setDrawRange(0, dstIndexArray.length);
+    plane2Ref.current.needsUpdate = true;
+    setColliderData({ indices: dstIndexArray, vertices: vertices2 });
 
     textureRef.current.image = generateTexture(heightData, width, depth, sunPosition);
   }, [width, depth]);
 
   const handleClick = (ev) => {
-    if (isMoving) return;
-    console.log('handling click');
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObject(meshRef.current);
 
     if (intersects.length > 0) {
+      if (intersects[0].point.x > 250 || intersects[0].point.z < -250) return;
       const normalMatrix = new THREE.Matrix3().getNormalMatrix(meshRef.current.matrixWorld);
       const normalDisplace = intersects[0].face.normal.clone().applyMatrix3(normalMatrix).normalize().multiplyScalar(20);
-      // helperRef.current.position.set(0, 0, 0);
-      // helperRef.current.lookAt(intersects[0].face.normal);
-      // helperRef.current.position.addVectors(intersects[0].point, normalDisplace);
       const targetPos = new THREE.Vector3().addVectors(intersects[0].point, normalDisplace);
-
-      setIsMoving(true);
-      gsap.to(camera.position, {
-        x: targetPos.x,
-        y: targetPos.y + 5,
-        z: targetPos.z,
-        duration: 5,
-        ease: 'power2.inOut',
-        onComplete: () => setIsMoving(false)
-      });
+      moveCamera(targetPos.x, targetPos.y + 5, targetPos.z);
     }
   };
 
@@ -149,10 +156,15 @@ export default function Terrain({ width = 512, depth = 512, sunPosition }) {
           />
         </meshPhysicalMaterial>
       </mesh>
-      {/* <mesh ref={helperRef}>
-        <coneGeometry args={[4, 20, 3]} translate={[0, 10, 0]} rotateX={Math.PI / 2} />
-        <meshNormalMaterial />
-      </mesh> */}
+      <RigidBody type="fixed">
+        <mesh rotation={[-0.5 * Math.PI, 0, 0]} onClick={handleClick} ref={mesh2Ref}>
+          {!colliderData ? (
+            <planeGeometry args={[1000, 1000, width - 1, depth - 1]} ref={plane2Ref} />
+          ) : (
+            <TrimeshCollider args={[colliderData.vertices, colliderData.indices]} />
+          )}
+        </mesh>
+      </RigidBody>
     </>
   );
 }
