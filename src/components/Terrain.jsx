@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
-import { useEffect, useMemo, useRef } from 'react';
-import { Cone } from '@react-three/drei';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useThree } from '@react-three/fiber';
+import { gsap } from 'gsap';
 
 function generateHeight(width, depth) {
   let seed = Math.PI / 4;
@@ -97,6 +97,7 @@ export default function Terrain({ width = 512, depth = 512, sunPosition }) {
   const textureRef = useRef(null);
   const helperRef = useRef(null);
   const { pointer, raycaster, camera } = useThree();
+  const [isMoving, setIsMoving] = useState(false);
 
   useEffect(() => {
     const vertices = planeRef.current.attributes.position.array;
@@ -105,41 +106,40 @@ export default function Terrain({ width = 512, depth = 512, sunPosition }) {
       vertices[j + 2] = heightData[i] * 0.3;
     }
 
-    // textureRef.current.image = generateTexture(heightData, width, depth, sunPosition);
+    textureRef.current.image = generateTexture(heightData, width, depth, sunPosition);
   }, [width, depth]);
 
   const handleClick = (ev) => {
+    if (isMoving) return;
+    console.log('handling click');
     raycaster.setFromCamera(pointer, camera);
-    // See if the ray from the camera into the world hits one of our meshes
     const intersects = raycaster.intersectObject(meshRef.current);
 
-    // Toggle rotation bool for meshes that we clicked
     if (intersects.length > 0) {
-      helperRef.current.position.set(0, 0, 0);
-      helperRef.current.lookAt(intersects[0].face.normal);
-      console.log(intersects[0].face.normal);
-      // helperRef.current.position.copy(intersects[0].point);
-      helperRef.current.position.addVectors(intersects[0].point, intersects[0].face.normal.clone().multiplyScalar(10));
+      const normalMatrix = new THREE.Matrix3().getNormalMatrix(meshRef.current.matrixWorld);
+      const normalDisplace = intersects[0].face.normal.clone().applyMatrix3(normalMatrix).normalize().multiplyScalar(20);
+      // helperRef.current.position.set(0, 0, 0);
+      // helperRef.current.lookAt(intersects[0].face.normal);
+      // helperRef.current.position.addVectors(intersects[0].point, normalDisplace);
+      const targetPos = new THREE.Vector3().addVectors(intersects[0].point, normalDisplace);
 
-      // camera.position.copy(intersects[0].point);
-      // camera.position.y += 10;
-      // camera.lookAt(100, 0, -150);
+      setIsMoving(true);
+      gsap.to(camera.position, {
+        x: targetPos.x,
+        y: targetPos.y + 5,
+        z: targetPos.z,
+        duration: 5,
+        ease: 'power2.inOut',
+        onComplete: () => setIsMoving(false)
+      });
     }
   };
 
   return (
     <>
       <mesh rotation={[-0.5 * Math.PI, 0, 0]} onClick={handleClick} ref={meshRef}>
-        {/* <bufferGeometry>
-        <bufferAttribute attach="attributes-position" array={positions} itemSize={3} />
-        <bufferAttribute attach="attributes-normal" array={normals} itemSize={3} />
-        <bufferAttribute attach="attributes-color" array={colors} itemSize={3} />
-        <bufferAttribute attach="attributes-uv" array={uvs} itemSize={2} />
-        <bufferAttribute attach="index" array={indicies} itemSize={1} />
-      </bufferGeometry> */}
         <planeGeometry args={[1000, 1000, width - 1, depth - 1]} ref={planeRef} />
-        <meshNormalMaterial />
-        {/* <meshPhysicalMaterial>
+        <meshPhysicalMaterial>
           <canvasTexture
             ref={textureRef}
             attach="map"
@@ -147,12 +147,12 @@ export default function Terrain({ width = 512, depth = 512, sunPosition }) {
             wrapT={THREE.ClampToEdgeWrapping}
             colorSpace={THREE.SRGBColorSpace}
           />
-        </meshPhysicalMaterial> */}
+        </meshPhysicalMaterial>
       </mesh>
-      <mesh ref={helperRef}>
-        <coneGeometry args={[5, 20, 3]} translate={[0, 50, 0]} rotateX={Math.PI / 2} />
+      {/* <mesh ref={helperRef}>
+        <coneGeometry args={[4, 20, 3]} translate={[0, 10, 0]} rotateX={Math.PI / 2} />
         <meshNormalMaterial />
-      </mesh>
+      </mesh> */}
     </>
   );
 }

@@ -12,9 +12,9 @@ const Sphere = ({ size = 1, amount = 50, color = 'white', emissive, glow, ...pro
 export default function TestSpheres() {
   return (
     <>
-      <Sphere color="white" amount={50} emissive="green" glow="lightgreen" position={[1, 1, -1]} />
-      <Sphere color="white" amount={30} emissive="purple" glow="#ff90f0" size={0.5} position={[-1.5, 0.5, -2]} />
-      <Sphere color="lightpink" amount={20} emissive="orange" glow="#ff9f50" size={0.25} position={[-1, 0.25, 1]} />
+      <Sphere color="white" amount={50} emissive="green" glow="lightgreen" position={[1, 100, -1]} />
+      <Sphere color="white" amount={30} emissive="purple" glow="#ff90f0" size={0.5} position={[-1.5, 99.5, -2]} />
+      <Sphere color="lightpink" amount={20} emissive="orange" glow="#ff9f50" size={0.25} position={[-1, 99.25, 1]} />
     </>
   );
 }
