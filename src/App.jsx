@@ -12,7 +12,7 @@ export default function App() {
     <Canvas>
       <Suspense>
         {/* <CameraControls /> */}
-        <fogExp2 attach="fog" color={COLORS.purple} density={0.0025} />
+        <fogExp2 attach="fog" color={COLORS.purple} density={0.003} />
         <Stats />
         <Skybox sunPosition={sunPosition} />
         <PhysicsWorld />
