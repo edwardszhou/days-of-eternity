@@ -72,7 +72,10 @@ export default memo(function Terrain({ width, depth, sunPosition, moveCamera }) 
       <RigidBody type="fixed">
         <mesh rotation={[-0.5 * Math.PI, 0, 0]} onClick={handleClick} ref={mesh2Ref}>
           {!colliderData ? (
-            <planeGeometry args={[1000, 1000, width - 1, depth - 1]} ref={plane2Ref} />
+            <>
+              <planeGeometry args={[1000, 1000, width - 1, depth - 1]} ref={plane2Ref} />
+              <meshBasicMaterial wireframe visible={false} />
+            </>
           ) : (
             <TrimeshCollider args={[colliderData.vertices, colliderData.indices]} />
           )}

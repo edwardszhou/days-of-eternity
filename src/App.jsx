@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { Stats } from '@react-three/drei';
+import { CameraControls, Stats } from '@react-three/drei';
 import { Suspense } from 'react';
 
 import './styles.css';
