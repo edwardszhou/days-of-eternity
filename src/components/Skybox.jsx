@@ -1,13 +1,14 @@
 import { Environment, Sky, Stars } from '@react-three/drei';
 import React from 'react';
+import { COLORS } from '../lib/constants';
 
 export default function Skybox({ sunPosition }) {
   return (
     <>
-      <hemisphereLight intensity={0.5} color="#FFD09B" groundColor="#432945" />
+      <hemisphereLight intensity={0.5} color={COLORS.lightOrange} groundColor={COLORS.purple} />
       <ambientLight intensity={0.05} />
-      <directionalLight color="#FB6D48" intensity={1} position={[sunPosition.x, sunPosition.y + 20, sunPosition.z]} />
-      <directionalLight color="#6C0345" intensity={3} position={[-sunPosition.x, sunPosition.y + 20, -sunPosition.z]} />
+      <directionalLight color={COLORS.redOrange} intensity={1} position={[sunPosition.x, sunPosition.y + 20, sunPosition.z]} />
+      <directionalLight color={COLORS.magenta} intensity={3} position={[-sunPosition.x, sunPosition.y + 20, -sunPosition.z]} />
 
       <Environment files="spruit_sunrise_4k.hdr" environmentIntensity={0.3} environmentRotation={[0, (5 * Math.PI) / 12, 0]} />
       {/* <Environment
